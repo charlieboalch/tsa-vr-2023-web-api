@@ -1,7 +1,7 @@
 # TSA VR 2023 Backend
 
 ### API Documentation
-- Endpoint- https://phqsh.tech/vr/animal
+- Endpoint- https://phqsh.tech/vr/
 - Method- GET
 - Response- JSON
 - Params:
