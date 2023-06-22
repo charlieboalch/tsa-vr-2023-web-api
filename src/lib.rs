@@ -217,7 +217,6 @@ pub async fn get_and_cache(options: AnimalOptions, state: &web::Data<State>) -> 
         .await?;
 
     let text = &resp.text().await?;
-    println!("{}", text);
 
     let animal_data: AnimalData = from_str(&text)?;
     cache_data(&options, &animal_data).await?;
