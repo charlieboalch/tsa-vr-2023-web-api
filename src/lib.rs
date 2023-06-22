@@ -17,6 +17,13 @@ use serde_json::{from_reader, from_str, Value};
 pub struct AnimalData {
     pub animals: Vec<Animal>,
     pub pagination: Pagination,
+    pub timestamp: Option<u64>
+}
+
+impl AnimalData {
+    pub fn set_timestamp(&mut self) {
+        self.timestamp = Some(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs())
+    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -193,8 +200,10 @@ pub struct AnimalOptions {
 pub async fn get_and_cache(options: AnimalOptions, state: &web::Data<State>) -> Result<AnimalData, Box<dyn Error>> {
     let res = check_cache(&options).await;
     if res.is_some() {
-        println!("Cache hit");
-        return Ok(res.unwrap());
+        let data = res.unwrap();
+        if (data.timestamp + 43200) > SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() {
+            return Ok(data);
+        }
     }
     refresh_token(&state).await;
 
@@ -218,7 +227,8 @@ pub async fn get_and_cache(options: AnimalOptions, state: &web::Data<State>) -> 
 
     let text = &resp.text().await?;
 
-    let animal_data: AnimalData = from_str(&text)?;
+    let mut animal_data: AnimalData = from_str(&text)?;
+    animal_data.set_timestamp();
     cache_data(&options, &animal_data).await?;
 
     Ok(animal_data)
