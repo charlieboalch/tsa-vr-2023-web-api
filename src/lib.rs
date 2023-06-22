@@ -201,7 +201,8 @@ pub async fn get_and_cache(options: AnimalOptions, state: &web::Data<State>) -> 
     let res = check_cache(&options).await;
     if res.is_some() {
         let data = res.unwrap();
-        if (data.timestamp.unwrap() + 43200) > SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() {
+        let timestamp = data.timestamp;
+        if timestamp.is_some() && timestamp.unwrap() + 43200 > SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() {
             return Ok(data);
         }
     }
