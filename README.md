@@ -15,7 +15,7 @@
   - location: int (zip code)
 
 ### Example
-https://phqsh.tech/vr/animal?species=Dog&size=Medium&gender=Male&age=Senior&good_with_kids=true&good_with_animals=true&house_trained=true&location=40202
+https://phqsh.tech/vr/api?species=Dog&size=Medium&gender=Male&age=Senior&good_with_kids=true&good_with_animals=true&house_trained=true&location=40202
 
 ```json
 {
