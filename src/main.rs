@@ -1,8 +1,8 @@
 use std::sync::Mutex;
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
-use TSA_VR_2023_Web_API::{AnimalOptions, get_and_cache, State};
+use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
+use TSA_VR_2023_Web_API::{AnimalOptions, get_and_cache, look_up_url, State};
 
-#[get("/animal")]
+#[get("/api")]
 async fn get_animal(data: web::Data<State>, options: web::Query<AnimalOptions>) -> impl Responder {
     let mut counter = data.requests.lock().unwrap();
     *counter += 1;
@@ -11,6 +11,22 @@ async fn get_animal(data: web::Data<State>, options: web::Query<AnimalOptions>) 
     
     match data {
         Ok(data) => HttpResponse::Ok().json(data),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
+}
+
+#[get("/animal/{pet}")]
+async fn redirect_to_animal(path: web::Path<String>) -> impl Responder {
+    let pet = path.into_inner();
+    let url = look_up_url(pet).await;
+    match url {
+        Ok(url) => {
+            if let Some(i) = url {
+                HttpResponse::TemporaryRedirect().append_header(("Location", i)).finish()
+            } else {
+                HttpResponse::NotFound().body("Animal not found")
+            }
+        },
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
 }
@@ -31,6 +47,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(state.clone())
             .service(get_animal)
+            .service(redirect_to_animal)
         })
         .bind(("127.0.0.1", 1522))?
         .run()

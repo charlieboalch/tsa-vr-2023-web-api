@@ -1,4 +1,5 @@
 use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::fs::File;
@@ -10,7 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use actix_web::web;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
-use serde_json::{from_reader, from_str, Value};
+use serde_json::{from_reader, from_str, to_string};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -52,7 +53,6 @@ pub struct Animal {
     pub photos: Option<Vec<Photo>>,
     #[serde(rename = "primary_photo_cropped")]
     pub primary_photo_cropped: Option<PrimaryPhotoCropped>,
-    pub videos: Option<Vec<String>>,
     pub status: Option<String>,
     #[serde(rename = "status_changed_at")]
     pub status_changed_at: Option<String>,
@@ -88,7 +88,7 @@ pub struct Attributes {
     pub spayed_neutered: Option<bool>,
     #[serde(rename = "house_trained")]
     pub house_trained: Option<bool>,
-    pub declawed: Option<String>,
+    pub declawed: Option<bool>,
     #[serde(rename = "special_needs")]
     pub special_needs: Option<bool>,
     #[serde(rename = "shots_current")]
@@ -190,7 +190,7 @@ pub struct AnimalOptions {
     good_with_kids: bool,
     good_with_animals: bool,
     house_trained: bool,
-    location: u16
+    location: u32
 }
 
 
@@ -200,7 +200,8 @@ pub struct AnimalOptions {
 pub async fn get_and_cache(options: AnimalOptions, state: &web::Data<State>) -> Result<AnimalData, Box<dyn Error>> {
     let res = check_cache(&options).await;
     if res.is_some() {
-        let data = res.unwrap();
+        let mut data = res.unwrap();
+        create_short_url(&mut data).await.ok();
         let timestamp = data.timestamp;
         if timestamp.is_some() && timestamp.unwrap() + 43200 > SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() {
             return Ok(data);
@@ -231,8 +232,53 @@ pub async fn get_and_cache(options: AnimalOptions, state: &web::Data<State>) -> 
     let mut animal_data: AnimalData = from_str(&text)?;
     animal_data.set_timestamp();
     cache_data(&options, &animal_data).await?;
+    create_short_url(&mut animal_data).await.ok();
 
     Ok(animal_data)
+}
+
+async fn create_short_url(animal_data: &mut AnimalData) -> Result<(), Box<dyn Error>> {
+    if !Path::new("./cache/url-table.json").exists() {
+        let mut file = File::create("./cache/url-table.json")?;
+        let table = UrlTable::new();
+        file.write_all(to_string(&table)?.as_ref())?;
+    }
+
+    let contents = fs::read_to_string("./cache/url-table.json")?;
+    let mut table: UrlTable = from_str(&contents)?;
+    // now add a url shortener
+    for animal in &mut animal_data.animals {
+        let animal_url = animal.url.clone().unwrap_or(String::from("unknown"));
+        let id = animal.id.clone().unwrap_or(-1);
+        let org_id = animal.organization_id.clone().unwrap_or(String::from("unknown"));
+
+        let mut flag = false;
+        for values in &table.urls {
+            if values.1 == &animal_url {
+                animal.url = Some(format!("phqsh.tech/vr/animal/{}", values.0));
+                flag = true;
+                break;
+            }
+        }
+
+        //if not found
+        if !flag {
+            // format- id-orgid
+            // example- 65087362-GA575
+            let url = &format!("{}-{}",
+                               id,
+                               org_id);
+
+            println!("{} -> {}", url, animal_url);
+
+            table.urls.insert(url.clone(), animal_url);
+            animal.url = Some(String::from(format!("phqsh.tech/vr/animal/{}", url)));
+        }
+    }
+
+    let mut file = File::create("./cache/url-table.json")?;
+    file.write_all(to_string(&table)?.as_ref())?;
+    Ok(())
 }
 
 async fn refresh_token(state: &web::Data<State>) {
@@ -248,7 +294,7 @@ async fn refresh_token(state: &web::Data<State>) {
     let client = reqwest::Client::new();
 
     let resp = client.post("https://api.petfinder.com/v2/oauth2/token")
-        .body(serde_json::to_string(&AuthData {
+        .body(to_string(&AuthData {
             grant_type: "client_credentials",
             client_id: &**state.client_id.lock().unwrap(),
             client_secret: &**state.client_secret.lock().unwrap(),
@@ -278,7 +324,7 @@ async fn cache_data(options: &AnimalOptions, animal_data: &AnimalData) -> Result
     let hash = hasher.finish();
     let mut file = File::create(format!("./cache/{}.json", hash))?;
 
-    let json = serde_json::to_string(&animal_data)?;
+    let json = to_string(&animal_data)?;
     file.write_all(json.as_bytes())?;
 
     Ok(())
@@ -297,6 +343,19 @@ async fn check_cache(options: &AnimalOptions) -> Option<AnimalData> {
         },
         None => return None
     }
+}
+
+pub async fn look_up_url(path: String) -> Result<Option<String>, Box<dyn Error>> {
+    let contents = fs::read_to_string("./cache/url-table.json").unwrap();
+    let table: UrlTable = from_str(&contents).unwrap();
+
+    for values in &table.urls {
+        if values.0 == &path {
+            return Ok(Some(values.1.clone()));
+        }
+    }
+
+    return Ok(None);
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -323,4 +382,17 @@ pub struct AuthData<'a> {
     pub grant_type: &'a str,
     pub client_id: &'a str,
     pub client_secret: &'a str,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UrlTable {
+    pub urls: HashMap<String, String>,
+}
+
+impl UrlTable {
+    pub fn new() -> UrlTable {
+        UrlTable {
+            urls: HashMap::new(),
+        }
+    }
 }
