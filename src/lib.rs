@@ -255,7 +255,7 @@ async fn create_short_url(animal_data: &mut AnimalData) -> Result<(), Box<dyn Er
         let mut flag = false;
         for values in &table.urls {
             if values.1 == &animal_url {
-                animal.url = Some(format!("phqsh.tech/vr/animal/{}", values.0));
+                animal.url = Some(format!("phqsh.tech/vr/{}", values.0));
                 flag = true;
                 break;
             }
@@ -272,7 +272,7 @@ async fn create_short_url(animal_data: &mut AnimalData) -> Result<(), Box<dyn Er
             println!("{} -> {}", url, animal_url);
 
             table.urls.insert(url.clone(), animal_url);
-            animal.url = Some(String::from(format!("phqsh.tech/vr/animal/{}", url)));
+            animal.url = Some(String::from(format!("phqsh.tech/vr/{}", url)));
         }
     }
 
