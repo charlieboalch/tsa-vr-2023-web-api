@@ -1,7 +1,7 @@
 # TSA VR 2023 Backend
 
 ### API Documentation
-- Endpoint- https://phqsh.tech/vr/animal
+- Endpoint- https://phqsh.tech/vr/
 - Method- GET
 - Response- JSON
 - Params:
@@ -15,7 +15,7 @@
   - location: int (zip code)
 
 ### Example
-https://phqsh.tech/vr/animal?species=Dog&size=Medium&gender=Male&age=Senior&good_with_kids=true&good_with_animals=true&house_trained=true&location=40202
+https://phqsh.tech/vr/api?species=Dog&size=Medium&gender=Male&age=Senior&good_with_kids=true&good_with_animals=true&house_trained=true&location=40202
 
 ```json
 {
