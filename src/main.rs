@@ -2,20 +2,20 @@ use std::sync::Mutex;
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use TSA_VR_2023_Web_API::{AnimalOptions, get_and_cache, look_up_url, State};
 
-#[get("/api")]
+#[get("/vr/api")]
 async fn get_animal(data: web::Data<State>, options: web::Query<AnimalOptions>) -> impl Responder {
     let mut counter = data.requests.lock().unwrap();
     *counter += 1;
-    
+
     let data = get_and_cache(options.into_inner(), &data).await;
-    
+
     match data {
         Ok(data) => HttpResponse::Ok().json(data),
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
 }
 
-#[get("/animal/{pet}")]
+#[get("/vr/{pet}")]
 async fn redirect_to_animal(path: web::Path<String>) -> impl Responder {
     let pet = path.into_inner();
     let url = look_up_url(pet).await;
