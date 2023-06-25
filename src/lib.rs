@@ -212,17 +212,27 @@ pub async fn get_and_cache(options: AnimalOptions, state: &web::Data<State>) -> 
     let request = reqwest::Client::builder()
         .build()?;
 
-    let resp = request.get(format!("https://api.petfinder.com/v2/animals?type={}&size={}&gender={}&age={}&good_with_children={}&good_with_dogs={}&good_with_cats={}&house_trained={}&location={}&limit=100",
-            &options.species,
-            &options.size,
-            &options.gender,
-            &options.age,
-            &options.good_with_kids,
-            &options.good_with_animals,
-            &options.good_with_animals,
-            &options.house_trained,
-            &options.location
-        ))
+    let mut url = format!("https://api.petfinder.com/v2/animals?type={}&size={}&gender={}&age={}&location={}&limit=100",
+                          &options.species,
+                          &options.size,
+                          &options.gender,
+                          &options.age,
+                          &options.location
+    );
+
+    if options.good_with_kids != "" {
+        url.push_str(&format!("&good_with_children={}", &options.good_with_kids));
+    }
+
+    if options.good_with_animals != "" {
+        url.push_str(&format!("&good_with_dogs={}&good_with_cats={}", &options.good_with_animals, &options.good_with_animals));
+    }
+
+    if options.house_trained != "" {
+        url.push_str(&format!("&house_trained={}", &options.house_trained));
+    }
+
+    let resp = request.get(url)
         .bearer_auth(&*state.access_token.lock().unwrap())
         .send()
         .await?;
