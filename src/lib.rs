@@ -187,9 +187,9 @@ pub struct AnimalOptions {
     size: String,
     gender: String,
     age: String,
-    good_with_kids: bool,
-    good_with_animals: bool,
-    house_trained: bool,
+    good_with_kids: String,
+    good_with_animals: String,
+    house_trained: String,
     location: u32
 }
 
