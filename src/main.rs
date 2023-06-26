@@ -17,7 +17,7 @@ async fn get_animal(data: web::Data<State>, options: web::Query<AnimalOptions>) 
 
 #[get("/vr/{pet}")]
 async fn redirect_to_animal(path: web::Path<String>) -> impl Responder {
-    let pet = path.into_inner();
+    let pet = path.into_inner().to_lowercase();
     let url = look_up_url(pet).await;
     match url {
         Ok(url) => {

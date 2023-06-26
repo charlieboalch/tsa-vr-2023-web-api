@@ -238,6 +238,7 @@ pub async fn get_and_cache(options: AnimalOptions, state: &web::Data<State>) -> 
         .await?;
 
     let text = &resp.text().await?;
+    println!("{}", text);
 
     let mut animal_data: AnimalData = from_str(&text)?;
     animal_data.set_timestamp();
@@ -260,7 +261,6 @@ async fn create_short_url(animal_data: &mut AnimalData) -> Result<(), Box<dyn Er
     for animal in &mut animal_data.animals {
         let animal_url = animal.url.clone().unwrap_or(String::from("unknown"));
         let id = animal.id.clone().unwrap_or(-1);
-        let org_id = animal.organization_id.clone().unwrap_or(String::from("unknown"));
 
         let mut flag = false;
         for values in &table.urls {
@@ -273,13 +273,8 @@ async fn create_short_url(animal_data: &mut AnimalData) -> Result<(), Box<dyn Er
 
         //if not found
         if !flag {
-            // format- id-orgid
-            // example- 65087362-GA575
-            let url = &format!("{}-{}",
-                               id,
-                               org_id);
-
-            println!("{} -> {}", url, animal_url);
+            let num = i64::from(id);
+            let url = &format!("{:x}", num);
 
             table.urls.insert(url.clone(), animal_url);
             animal.url = Some(String::from(format!("phqsh.tech/vr/{}", url)));
