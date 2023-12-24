@@ -1,7 +1,7 @@
 # TSA VR 2023 Backend
 
 ### API Documentation
-- Endpoint- https://phqsh.tech/vr/
+- Endpoint- https://phqsh.tech/vr/ (NOTE: service has been taken down)
 - Method- GET
 - Response- JSON
 - Params:
